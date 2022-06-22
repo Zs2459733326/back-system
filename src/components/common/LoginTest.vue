@@ -47,6 +47,8 @@
 </template>
 
 <script>
+
+
 export default {
   data() {
     return {
@@ -93,7 +95,21 @@ export default {
       // *****这里的写法不要想太多，这是elementui官方的写法
       this.$refs[form].validate((valid) => {
         if (valid) {
-          this.$router.push("/home");
+          console.log(this.axios);
+          this.axiosPro.post('/login', formData)
+            .then(
+              (res) => {
+                console.log(res);
+                // 请求成功
+                if (res.data.status == 200) {
+                  this.$router.push("/home");
+                }
+                this.$message({message:res.data.message, type:'success'})
+              }
+              // 请求失败
+            ).catch((error) => {
+              console.log(error);
+            })
         } else {
           console.log(this.form);
         }
@@ -182,6 +198,7 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
 /* 卡片整体 */
 .box-card {
   padding-right: 50px;
@@ -191,6 +208,7 @@ export default {
   box-sizing: border-box;
   background-color: rgb(244, 244, 244, 0.5);
 }
+
 .verCode .show {
   position: absolute;
   left: 140px;

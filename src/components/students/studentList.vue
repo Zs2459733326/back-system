@@ -14,10 +14,10 @@
       <el-form-item>
         <el-button type="primary" @click="find">查询</el-button>
       </el-form-item>
-
-
-
     </el-form>
+
+
+
     <!-- 表格部分 -->
     <el-table :data="tableData" border style="width: 100%">
       <el-table-column prop="name" label="姓名" align="center"></el-table-column>
@@ -36,6 +36,9 @@
 
       </el-table-column>
     </el-table>
+
+
+
     <!-- 新增消息弹框 -->
     <el-dialog :title="editState ? '新增学生信息' : '编辑学生信息'" :visible.sync="dialogFormVisible" width="500px">
       <el-form ref="form" :model="form" :rules="rules">
@@ -82,6 +85,7 @@
       </div>
     </el-dialog>
 
+
   </div>
 </template>
 
@@ -92,7 +96,7 @@ export default {
   data() {
     return {
       // 编辑时的状态 true 为添加模式，false 为编辑模式
-      edisState: true,
+      editState: true,
       form: {
         name: '',
         sex: '',
@@ -123,6 +127,17 @@ export default {
     }
   },
   methods: {
+    // 封装请求数据的函数
+    getData(){
+      this.axiosPro.get('/students')
+      .then(res => {
+        console.log(res)
+        this.tableData = [...res.data];
+      })
+      .catch(err => {
+        console.log(err);
+      })
+    },
     // 查询
     find() {
 
@@ -155,7 +170,7 @@ export default {
             this.tableData.push(this.form)
             this.dialogFormVisible = false
             this.form = {}
-          }else {
+          } else {
             // 调用修改的接口
 
           }
@@ -169,5 +184,5 @@ export default {
 }
 </script>
 
-<style>
+<style lang="scss" >
 </style>
