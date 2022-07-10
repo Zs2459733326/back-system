@@ -94,8 +94,8 @@ export default {
 
       // *****这里的写法不要想太多，这是elementui官方的写法
       this.$refs[form].validate((valid) => {
+        console.log(this.axiosPro);
         if (valid) {
-          console.log(this.axios);
           this.axiosPro.post('/login', formData)
             .then(
               (res) => {
@@ -104,7 +104,7 @@ export default {
                 if (res.data.status == 200) {
                   this.$router.push("/home");
                 }
-                this.$message({message:res.data.message, type:'success'})
+                this.$message({ message: res.data.message, type: 'success' })
               }
               // 请求失败
             ).catch((error) => {

@@ -1,7 +1,7 @@
 <template>
   <div class="studentList">
     <!-- 新增 和 查询  -->
-    <el-form :inline="true" :model="formInline" class="demo-form-inline">
+    <el-form ref="formInline" :inline="true" :model="formInline" class="demo-form-inline">
       <el-form-item>
         <el-button type="primary" @click="addStudent">新增</el-button>
       </el-form-item>
@@ -12,14 +12,16 @@
         <el-input v-model="formInline.number" placeholder="学号"></el-input>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="find">查询</el-button>
+        <el-button type="primary" @click="find()">查询</el-button>
+        <el-button type="primary" @click="reset()">重置</el-button>
       </el-form-item>
     </el-form>
 
 
 
     <!-- 表格部分 -->
-    <el-table :data="tableData" border style="width: 100%">
+    <!-- tableData.slice((当前页数 -1)*每页条数，当前页数*当前页条数)  -->
+    <el-table :data="tableData.slice((currentPage - 1) * pageSize, currentPage * pageSize)" border style="width: 100%">
       <el-table-column prop="name" label="姓名" align="center"></el-table-column>
       <el-table-column prop="sex" label="性别" align="center"></el-table-column>
       <el-table-column prop="age" label="年龄" align="center"></el-table-column>
@@ -40,6 +42,7 @@
 
 
     <!-- 新增消息弹框 -->
+    <!-- 通过 editState 的布尔值 来判断 弹出框的状态 从而判断应该执行 新增（true） 还是 修改(false) 操作-->
     <el-dialog :title="editState ? '新增学生信息' : '编辑学生信息'" :visible.sync="dialogFormVisible" width="500px">
       <el-form ref="form" :model="form" :rules="rules">
         <el-form-item label="名字" :label-width="formLabelWidth" prop="name">
@@ -85,6 +88,17 @@
       </div>
     </el-dialog>
 
+    <!-- 分页器 -->
+    <el-pagination
+      background
+      @size-change="hanldSizeChange"
+      @current-change="hanldCurrentChange"
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :page-sizes="[5, 10, 20, 30]"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total">
+</el-pagination>
 
   </div>
 </template>
@@ -97,6 +111,7 @@ export default {
     return {
       // 编辑时的状态 true 为添加模式，false 为编辑模式
       editState: true,
+      // 当前行的表单数据   新增和编辑的表单数据
       form: {
         name: '',
         sex: '',
@@ -107,6 +122,7 @@ export default {
         address: '',
         phone: ''
       },
+      // 新增和编辑的表单的规则
       rules: {
         name: [{ required: true, message: "请输入姓名" }],
         sex: [{ required: true }],
@@ -117,45 +133,146 @@ export default {
         address: [{ required: true, message: "请输入地址" }],
         phone: [{ required: true, message: "请输入联系方式" }],
       },
+      // 弹出框 默认关闭
       dialogFormVisible: false,
       formLabelWidth: '120px',
+      // 表格数据
       tableData: [],
+      // 查询功能 的表单数据
       formInline: {
         name: '',
         number: ''
-      }
+      },
+      // 分页数据
+      total:50, // 总条数
+      currentPage: 1, // 当前页数
+      pageSize: 10 // 每页显示条数 
+
     }
   },
+  created() {
+    this.getData()
+  },
   methods: {
+    // 分页函数
+    hanldSizeChange(val){
+      // console.log(val);
+      this.pageSize = val
+      this.currentPage = 1
+    },
+    hanldCurrentChange(val){
+      // console.log(val);
+      this.currentPage = val 
+    },
     // 封装请求数据的函数
-    getData(){
-      this.axiosPro.get('/students')
-      .then(res => {
-        console.log(res)
-        this.tableData = [...res.data];
-      })
-      .catch(err => {
-        console.log(err);
-      })
+    getData() {
+    // 请求总数据条数
+    this.axiosPro.get('/students/count')
+    .then(res => {
+      res.status === 200 ? this.total = res.data : this.total = 0
+      console.log(this.total);
+      // 拿到数据的总条数后，发送请求拿到全部数据 
+        this.axiosPro.get('/student?limit=' + this.total)
+        .then(res => {
+
+          if (res.status == 200) {
+            // console.log(res.data);
+            res.data.forEach(item => {
+              item.sex === "1" ? item.sex_text = "男" : item.sex_text = "女"
+              if (item.state === "1") {
+                item.state_text = "已入学"
+              } else if (item.state === "2") {
+                item.state_text = "未入学"
+              } else {
+                item.state_text = "休学中"
+              }
+            })
+            this.tableData = [...res.data];
+          } else {
+            this.$message.error(res.data.message)
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        })
+    })
+    .catch((err => {
+      console.error(err);
+    }))
     },
     // 查询
     find() {
+      this.axiosPro.get('student', {
+        params: this.formInline
+      })
+        .then((res) => {
+          this.tableData = [...res.data]
+          // this.getData()
+        }).catch((err) => {
+          console.log(err);
+        })
 
+    },
+    // 重置
+    reset() {
+      this.formInline = {}
+      this.getData()
     },
     // 新增
     addStudent() {
-      this.dialogFormVisible = !this.dialogFormVisible
+      this.dialogFormVisible = true
+      // 将弹出框改为 新增 状态
+      this.editState = true
+
+      // 每次新增时，将 form 表单 变成默认状态
+      // #region
+      this.form = {
+        name: '',
+        sex: '1',
+        age: '',
+        number: '',
+        class: '',
+        state: '',
+        address: '',
+        phone: ''
+      }
+      //#endregion
+
     },
-    // 编辑
+    // 修改
     // 这里 的 row 接收的是当前 这一行的 表单数据
     updateInfo(row) {
+      // 显示弹出框
       this.dialogFormVisible = true
-      this.edisState = false
-      this.form = row
+      // 将弹出框改为 修改 状态
+      this.editState = false
+      // this.form = row  这种写法 为什么会出现 修改时，列表数据也会实时变化的情况（深浅拷贝 不太明白）
+      // 将当前行的 表单数据 绑定form表单
+      this.form = { ...row }
     },
     // 删除
     del(row) {
-      console.log(row);
+      // console.log(row);
+      this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        // 请求删除接口
+        this.axiosPro.delete('student/' + row.id)
+          .then(() => {
+            this.getData()
+            this.$message({
+              type: 'success',
+              message: '删除成功!'
+            });
+          })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消删除'
+        });
+      })
     },
     // 确定提交
     sure(form) {
@@ -164,15 +281,34 @@ export default {
       // console.log(this.form);
       this.$refs[form].validate((valid) => {
         if (valid) {
-          // 通过判断 editState的状态，选择是新增信息，还是修改信息
-          if (this.edisState) {
+          // 通过判断 editState的状态，值为true是新增信息，值为false是修改信息
+          if (this.editState) {
             // 调用新增信息的接口
-            this.tableData.push(this.form)
-            this.dialogFormVisible = false
-            this.form = {}
+            this.axiosPro.post('students', this.form)
+              .then((res) => {
+                console.log(res);
+                this.getData()
+                this.dialogFormVisible = false
+                this.$message({
+                  type: 'success',
+                  message: '新增数据成功!'
+                });
+                // this.$refs[form].resetField()
+              })
+
           } else {
             // 调用修改的接口
-
+            // 拿到当前行的 表单数据
+            // console.log(this.form);
+            this.axiosPro.patch('students/' + this.form.id, this.form)
+              .then(() => {
+                this.getData()
+                this.dialogFormVisible = false
+                this.$message({
+                  type: 'success',
+                  message: '修改数据成功!'
+                });
+              })
           }
 
         } else {
@@ -185,4 +321,8 @@ export default {
 </script>
 
 <style lang="scss" >
+  .el-pagination {
+    text-align: right;
+    margin-top: 20px;
+  }
 </style>

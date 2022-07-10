@@ -18,7 +18,7 @@ export default new Router({
             hidden:true,
             component: () => import('@/components/Login.vue')
         },
-        // 主页
+        // 学生管理
         {
             path: '/home',
             name: '学生管理',
@@ -44,8 +44,38 @@ export default new Router({
                     iconClass:'fa fa-list-alt',
                     component: () => import('@/components/students/infoList.vue')
                 },
+                {
+                    path: '/home/attend',
+                    name: '考勤管理',
+                    iconClass:'fa fa-list-alt',
+                    component: () => import('@/components/students/attend.vue')
+                },
             ]
         },
+        // 数据分析
+        {
+            path: '/home',
+            name: '数据分析',
+            iconClass: 'fa fa-bar-chart',
+            component: () => import('@/components/Home.vue'),
+            children: [
+                {
+                    path: '/home/dataview',
+                    name: '数据概括',
+                    iconClass: 'fa fa-list-chart',
+                    component: () => import('@/components/dataAnalysis/dataOverView')
+                },
+                {
+                    path: '/home/mapdata',
+                    name: '地图概括',
+                    iconClass: 'fa fa-map-marker',
+                    component: () => import('@/components/dataAnalysis/mapData')
+                },
+
+            ]
+        },
+
+
         // 404页
         {
             // 通配符 * 匹配到没有的路由，显示404
